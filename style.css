@@ -1,0 +1,344 @@
+/* style.css —— 服药提醒配置端（零构建，CSS 变量 + 移动优先，360px 适配，深浅色） */
+
+:root {
+  --bg: #eef1f4;
+  --card: #ffffff;
+  --ink: #1c2430;
+  --muted: #67727e;
+  --border: #d6dce2;
+  --accent: #2f6fed;
+  --accent-ink: #ffffff;
+  --ok: #17954c;
+  --warn: #b9770e;
+  --err: #cf3d3d;
+  --chip-bg: #e3e8ee;
+  --badge-bg1: #f7f4ea;
+  --badge-bg2: #e9e4d6;
+  --badge-border: #c9c2ae;
+  --shadow: 0 1px 3px rgba(16, 24, 40, .10);
+  --radius: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101418;
+    --card: #1a2028;
+    --ink: #e8ecf1;
+    --muted: #97a1ad;
+    --border: #2c3540;
+    --accent: #5b8ff5;
+    --accent-ink: #0d1117;
+    --ok: #43c377;
+    --warn: #e0a437;
+    --err: #ef6a6a;
+    --chip-bg: #232b34;
+    --badge-bg1: #20242b;
+    --badge-bg2: #171b21;
+    --badge-border: #3a4350;
+    --shadow: 0 1px 3px rgba(0, 0, 0, .5);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+/* hidden 属性兜底：显式 display 声明（如 .badge-frame 的 inline-block）会覆盖 UA 的 [hidden] 样式 */
+[hidden] { display: none !important; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding-bottom: calc(58px + env(safe-area-inset-bottom));
+}
+
+/* ---------- 顶栏 ---------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.brand { display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 17px; }
+.brand-ico { width: 20px; height: 20px; color: var(--accent); }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--chip-bg);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  max-width: 62vw;
+  cursor: pointer;
+}
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.chip.ok .dot { background: var(--ok); }
+.chip.warn .dot { background: var(--warn); }
+.chip.err .dot { background: var(--err); }
+#conn-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- 主体 ---------- */
+main { padding: 12px 14px 24px; }
+.view h2 { font-size: 18px; margin: 4px 0 10px; }
+.row { display: flex; gap: 8px; align-items: center; margin: 10px 0; }
+.row .spacer { flex: 1; }
+.grow { flex: 1; }
+.center { text-align: center; }
+
+/* ---------- 按钮 ---------- */
+.btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: filter .15s ease, transform .05s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.primary-o { border-color: var(--accent); color: var(--accent); font-weight: 600; background: transparent; }
+.btn.ghost { background: transparent; border-color: transparent; font-size: 18px; padding: 4px 10px; }
+.btn.danger { border-color: var(--err); color: var(--err); background: transparent; }
+
+/* ---------- 列表 ---------- */
+.actions { margin-top: 2px; }
+.list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.item .badge-frame { flex: none; }
+.item .meta { flex: 1; min-width: 0; }
+.item .meta .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .meta .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.days-mini { display: inline-flex; gap: 3px; margin-right: 8px; }
+.days-mini span {
+  width: 15px; height: 15px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; border-radius: 4px;
+  background: var(--chip-bg); color: var(--muted);
+}
+.days-mini span.on { background: var(--accent); color: var(--accent-ink); }
+
+.empty { text-align: center; padding: 46px 0 20px; color: var(--muted); }
+.empty-ico { font-size: 40px; margin-bottom: 6px; }
+.hint { font-size: 12px; color: var(--muted); }
+
+/* ---------- 徽章拟物框（位图回显容器） ---------- */
+.badge-frame {
+  display: inline-block;
+  background: linear-gradient(180deg, var(--badge-bg1), var(--badge-bg2));
+  border: 1px solid var(--badge-border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 1px 3px rgba(0,0,0,.12);
+}
+.badge-frame canvas { display: block; image-rendering: pixelated; }
+
+/* ---------- 编辑表单 ---------- */
+.field { display: block; margin: 14px 0; }
+.field-label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+input[type="text"], input[type="time"], input:not([type]) {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 16px; /* ≥16px 防 iOS 缩放 */
+}
+input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+.preview-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  box-shadow: var(--shadow);
+}
+.pv-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.pv-4x { image-rendering: pixelated; max-width: 100%; background: var(--badge-bg1); border: 1px solid var(--badge-border); border-radius: 4px; }
+
+.days { display: flex; gap: 6px; }
+.days button {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 8px 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+.days button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+.switch-row { display: flex; align-items: center; justify-content: space-between; }
+.switch {
+  width: 48px; height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--chip-bg);
+  position: relative;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.switch .knob {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,.25);
+  transition: left .15s ease;
+}
+.switch[aria-checked="true"] { background: var(--ok); border-color: var(--ok); }
+.switch[aria-checked="true"] .knob { left: 22px; }
+
+/* ---------- 卡片 / 设置 ---------- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 12px 0;
+  box-shadow: var(--shadow);
+}
+.card h3 { font-size: 14px; margin: 0 0 8px; color: var(--muted); font-weight: 600; }
+
+.seg { display: flex; gap: 6px; }
+.seg-btn {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 9px;
+  padding: 8px 0;
+  cursor: pointer;
+  font-size: 14px;
+}
+.seg-btn[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+.kv { font-size: 13px; }
+.kv .kv-row { display: flex; justify-content: space-between; padding: 3px 0; }
+.kv .k { color: var(--muted); }
+
+.log { max-height: 240px; overflow: auto; font-size: 13px; }
+.log .log-row { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px dashed var(--border); }
+.log .t { color: var(--muted); flex: none; }
+.tag { font-size: 11px; border-radius: 5px; padding: 1px 6px; flex: none; }
+.tag.taken { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.tag.snooze { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.tag.miss { background: color-mix(in srgb, var(--err) 18%, transparent); color: var(--err); }
+
+/* ---------- NFC 页 ---------- */
+.degrade-box {
+  border: 1px dashed var(--warn);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin: 10px 0;
+  background: color-mix(in srgb, var(--warn) 7%, transparent);
+}
+.qr-box { text-align: center; margin: 12px 0; }
+.qr-box canvas { border-radius: 8px; background: #fff; padding: 8px; }
+.preview-url-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin: 10px 0;
+}
+.mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; word-break: break-all; color: var(--accent); }
+
+/* ---------- 底部导航 ---------- */
+.tabbar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 10;
+}
+.tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  padding: 12px 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+.tab.active { color: var(--accent); font-weight: 700; }
+
+/* ---------- Toast ---------- */
+#toasts {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(66px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  width: max-content;
+  max-width: 92vw;
+  z-index: 50;
+  pointer-events: none;
+}
+.toast {
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: 13px;
+  max-width: 92vw;
+  box-shadow: 0 4px 14px rgba(0,0,0,.25);
+  animation: toast-in .18s ease;
+}
+@media (prefers-color-scheme: dark) {
+  .toast { background: #2f3945; color: var(--ink); }
+}
+.toast.ok { outline: 2px solid var(--ok); }
+.toast.err { outline: 2px solid var(--err); }
+.toast.warn { outline: 2px solid var(--warn); }
+.toast.alert { outline: 2px solid var(--accent); font-weight: 600; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- 窄屏（360px） ---------- */
+@media (max-width: 380px) {
+  main { padding: 10px 10px 20px; }
+  .item { padding: 8px 10px; gap: 8px; }
+  .days { gap: 4px; }
+  .days button { font-size: 12px; }
+  .brand { font-size: 15px; }
+  .chip { font-size: 11px; padding: 3px 8px; }
+}

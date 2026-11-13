@@ -1,0 +1,14 @@
+<!-- maskable 图标：图形整体缩到安全区内（80%），四角留背景 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#101418"/>
+  <g transform="translate(256 256) scale(0.72) translate(-256 -256)">
+    <g transform="translate(256 236)">
+      <path d="M0-124a104 104 0 0 0-104 104v56L-138 96a18 18 0 0 0 16 27h244a18 18 0 0 0 16-27L104 36V-20A104 104 0 0 0 0-124Zm-36 160a36 36 0 0 0 72 0"
+        fill="none" stroke="#5b8ff5" stroke-width="26" stroke-linejoin="round"/>
+    </g>
+    <g transform="translate(332 340) rotate(-45)">
+      <rect x="-34" y="-88" width="68" height="176" rx="34" fill="#f4f0e5"/>
+      <rect x="-34" y="-6" width="68" height="24" fill="#cf3d3d"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101418">
+  <title>服药提醒 · 徽章配置</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-ico" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3a6 6 0 0 0-6 6v3.3l-1.6 3A1 1 0 0 0 5.3 17h13.4a1 1 0 0 0 .9-1.6L18 12.3V9a6 6 0 0 0-6-6Zm-2 15a2 2 0 0 0 4 0" fill="currentColor"/>
+      </svg>
+      <span id="app-title">服药提醒</span>
+    </div>
+    <button id="conn-chip" class="chip" aria-label="连接状态，点按重新连接">
+      <span class="dot"></span><span id="conn-text">未连接</span>
+    </button>
+  </header>
+
+  <main id="main">
+    <!-- ============ 列表 ============ -->
+    <section id="view-list" class="view">
+      <div class="row actions">
+        <button id="btn-add" class="btn primary">＋ 新建</button>
+        <span class="spacer"></span>
+        <button id="btn-pull" class="btn">拉取</button>
+        <button id="btn-sync" class="btn primary-o">同步到徽章</button>
+      </div>
+      <div id="list-box" class="list"></div>
+      <div id="list-empty" class="empty" hidden>
+        <div class="empty-ico">💊</div>
+        <p>还没有提醒</p>
+        <p class="hint">点「＋ 新建」添加第一条；或「拉取」读回徽章上的提醒。</p>
+      </div>
+      <p class="hint center" id="sync-hint"></p>
+    </section>
+
+    <!-- ============ 编辑 ============ -->
+    <section id="view-edit" class="view" hidden>
+      <div class="row">
+        <button id="btn-back" class="btn ghost" aria-label="返回列表">←</button>
+        <h2 id="edit-title">新建提醒</h2>
+      </div>
+      <form id="edit-form">
+        <label class="field">
+          <span class="field-label">药名（≤14 字，可空）</span>
+          <input id="f-name" maxlength="14" placeholder="如：阿莫西林" autocomplete="off" inputmode="text">
+        </label>
+        <div class="preview-box">
+          <div class="pv-row">
+            <div class="badge-frame" title="工牌实际显示比例">
+              <canvas id="pv-1x"></canvas>
+            </div>
+            <div class="badge-frame" title="工牌实际显示比例（第二行）" id="pv-1x-2-wrap" hidden>
+              <canvas id="pv-1x-2"></canvas>
+            </div>
+          </div>
+          <canvas id="pv-4x" class="pv-4x"></canvas>
+          <div class="hint" id="pv-hint">上排：工牌 1:1 实际效果　下排：4× 放大核对</div>
+        </div>
+        <label class="field">
+          <span class="field-label">触发时间</span>
+          <input id="f-time" type="time" value="08:00">
+        </label>
+        <div class="field">
+          <span class="field-label">重复日</span>
+          <div class="days" id="f-days" role="group" aria-label="重复日选择"></div>
+        </div>
+        <div class="field switch-row">
+          <span class="field-label">启用</span>
+          <button type="button" id="f-on" class="switch" role="switch" aria-checked="true" aria-label="启用开关">
+            <span class="knob"></span>
+          </button>
+        </div>
+        <div class="row edit-actions">
+          <button type="submit" class="btn primary grow">保存</button>
+          <button type="button" id="btn-del" class="btn danger" hidden>删除</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ============ 碰一碰（NFC） ============ -->
+    <section id="view-nfc" class="view" hidden>
+      <h2>碰一碰 · 写入徽章入口</h2>
+      <p class="hint">把入口网址写进徽章上的 NTAG213 标签，手机碰一下即可打开本页并认出这块牌。</p>
+      <label class="field">
+        <span class="field-label">徽章 ID（写入 URL 的 ?b= 参数）</span>
+        <input id="nfc-badge-id" placeholder="如 SN01" autocomplete="off">
+      </label>
+      <div class="preview-url-box">
+        <span class="field-label">将写入标签的 URI</span>
+        <code id="nfc-url" class="mono"></code>
+      </div>
+      <div id="nfc-supported" hidden>
+        <button id="btn-nfc-write" class="btn primary grow">📡 写入此徽章入口到标签</button>
+        <p class="hint">写入时请把手机贴紧标签（荣耀机型 NFC 天线一般在摄像头模组附近），保持页面在前台。</p>
+      </div>
+      <div id="nfc-unsupported" hidden>
+        <div class="degrade-box">
+          <p><b>此设备不支持 Web NFC</b></p>
+          <p class="hint">Web NFC 需要 <b>Android 版 Chrome</b>（HTTPS 或 localhost 安全上下文）。
+          桌面 Chrome / iOS Safari / 荣耀内置浏览器均不可用。</p>
+          <p class="hint">替代方案：在支持的手机上打开下面的入口码，或手动复制 URI。</p>
+        </div>
+        <div class="qr-box">
+          <canvas id="qr-canvas" width="220" height="220" aria-label="当前页面二维码"></canvas>
+          <p class="hint center">用支持的手机扫码打开本页</p>
+        </div>
+        <div class="row">
+          <button id="btn-copy-url" class="btn grow">复制入口 URI</button>
+        </div>
+      </div>
+      <div id="nfc-status" class="hint" role="status"></div>
+    </section>
+
+    <!-- ============ 设置 ============ -->
+    <section id="view-settings" class="view" hidden>
+      <h2>设置</h2>
+
+      <div class="card">
+        <h3>连接方式</h3>
+        <div class="seg" id="mode-seg" role="radiogroup" aria-label="连接方式">
+          <button class="seg-btn" data-mode="sim" role="radio">模拟工牌</button>
+          <button class="seg-btn" data-mode="ble" role="radio">真实蓝牙</button>
+        </div>
+        <p class="hint">真实蓝牙：Chrome/Edge 且安全上下文（localhost 或 HTTPS）；点按后需在弹窗中选择 RMND- 设备。</p>
+        <div class="row">
+          <button id="btn-connect" class="btn grow">连接</button>
+          <button id="btn-simdrop" class="btn" hidden>模拟断连</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>设备</h3>
+        <div id="dev-info" class="kv"><span class="hint">未连接</span></div>
+        <div class="row">
+          <button id="btn-time" class="btn primary-o grow">⏱ 校时（发手机时间）</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>服药记录（设备端）</h3>
+        <div id="log-box" class="log"><span class="hint">点「读取记录」查看</span></div>
+        <div class="row">
+          <button id="btn-log" class="btn grow">读取记录</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>测试铃声</h3>
+        <p class="hint">只向设备发 cmd:bell 并展示回执，<b>本端绝不发声</b>（静音红线）。</p>
+        <div class="row">
+          <button id="btn-bell" class="btn grow">🔔 请求设备响铃</button>
+        </div>
+        <div id="bell-status" class="hint" role="status"></div>
+      </div>
+
+      <div class="card">
+        <h3>最近事件</h3>
+        <div id="events-box" class="log"><span class="hint">闹钟触发等事件会显示在这里</span></div>
+      </div>
+
+      <div class="card">
+        <h3>数据</h3>
+        <div class="row">
+          <button id="btn-wipe" class="btn danger grow">清空本页草稿与设置</button>
+        </div>
+        <p class="hint" id="build-info"></p>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar" aria-label="主导航">
+    <button class="tab" data-nav="list">列表</button>
+    <button class="tab" data-nav="nfc">碰一碰</button>
+    <button class="tab" data-nav="settings">设置</button>
+  </nav>
+
+  <div id="toasts" aria-live="polite"></div>
+  <script src="js/vendor/qr.js"></script><!-- 经典脚本：qrcode-generator（MIT），NFC 页降级二维码 -->
+  <script type="module" src="js/app.js"></script>
+  <noscript>本页需要启用 JavaScript。</noscript>
+</body>
+</html>

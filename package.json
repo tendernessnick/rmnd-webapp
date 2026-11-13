@@ -1,0 +1,6 @@
+{
+  "name": "rmnd-webapp",
+  "private": true,
+  "type": "module",
+  "description": "服药提醒徽章配置端 PWA（零构建，本文件仅供 node 把 .js 当 ESM 跑单测，无任何依赖）"
+}

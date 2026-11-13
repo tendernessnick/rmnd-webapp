@@ -1,0 +1,78 @@
+
+== protocol（契约编解码/分帧/校验） ==
+ PASS  encodeLine: hello 行逐字节精确
+ PASS  encodeLine: set 行含 i 与完整 r
+ PASS  encodeLine: 超长行（>480B）拒绝发送
+ PASS  parseLine: 合法 evt 行
+ PASS  parseLine: 坏 JSON → badjson
+ PASS  parseLine: 空行 → empty
+ PASS  parseLine: 无 evt 字段 → noevt
+ PASS  parseLine: JSON 数组 → notobject
+ PASS  LineAssembler: BLE 分块到达重组一行
+ PASS  LineAssembler: 一块多行、空行跳过、尾部残帧保留
+ PASS  LineAssembler: 超长行触发 fault 且不影响后续行
+ PASS  LineAssembler: 480B 恰好边界行放行（479 字符 + \n）
+ PASS  LineAssembler: 481B 行拒绝（fault=oversize）
+ PASS  LineAssembler: reset 丢弃残帧（断连语义）
+ PASS  validateReminder: 合法最小对象
+ PASS  validateReminder: 含合规 8×16 位图（b64 长度匹配）
+ PASS  validateReminder: hh=24 拒绝
+ PASS  validateReminder: mm=-1 拒绝
+ PASS  validateReminder: days 8 位拒绝
+ PASS  validateReminder: days 含非 0/1 拒绝
+ PASS  validateReminder: name 15 字拒绝（上限 14）
+ PASS  validateReminder: bmp.w=113 拒绝（上限 112）
+ PASS  validateReminder: bmp.h≠16 拒绝
+ PASS  validateReminder: b64 长度不符拒绝
+ PASS  b64ByteLen: 基本口径
+ PASS  defaultMatcherFor: time 同时收 clock 与 ok（偏差提案 P-01）
+ PASS  defaultMatcherFor: fired 不算 set 回执
+protocol（契约编解码/分帧/校验）: 27/27 通过
+
+== bmp（打包位序/分行/480B 预算） ==
+ PASS  packBitmap: MSB-first 位序（x=1 → 0x40）
+ FAIL  packBitmap: 3×2 已知图案 → gAE=（0x80,0x04） —— 期望 "gAE="，实际 "gCA="
+ PASS  packBitmap: 行对齐 w=9 → 每行 2 字节，x=8 落在第 2 字节 0x80
+ PASS  packBitmap: 112×16 全 1 → 224B 原始 → 300 字符 b64（契约上限位图）
+ PASS  unpackBitmap: 交错图案 roundtrip（w=13）
+ PASS  splitNameByWidth: 9 个全角字、112px、2 行 → 7+2，无截断
+ PASS  splitNameByWidth: 20 个 ASCII、112px、2 行 → 14+6
+ PASS  splitNameByWidth: 15 个全角字、2 行放不下 → rest=1 字
+ PASS  splitNameByWidth: maxLines=1 单行模式
+ PASS  splitNameByWidth: 空串 → 无行
+ PASS  reminderFitsLine: 单条 112×16 位图 + 14 全角名 → 480B 内放行
+ PASS  reminderFitsLine: bmp+bmp2 双 112×16 + 14 全角名 → 超预算（偏差提案 P-03 实证）
+ PASS  reminderFitsLine: 双 64×16 + 8 全角名 → 仍超预算（name 字段挤占）
+ FAIL  reminderFitsLine: 双 64×16 + 短 ASCII 名 → 放行（bmp+bmp2 路径可达） —— 短 ASCII 名时双行位图可装下
+ PASS  reminderFitsLine: 无位图必放行
+bmp（打包位序/分行/480B 预算）: 13/15 通过
+
+== simlink（SimulatedLink 契约回归） ==
+ PASS  open/close 发出状态事件
+ PASS  hello：fw/bat/utc/tz/n 全字段
+ PASS  get 空表：0 条 + done
+ PASS  set → ok → get 逐条回 → hello n=1（整条覆盖语义）
+ PASS  set 槽位 2/5 分散存储，get 按槽位回
+ PASS  set 索引越界（8）→ device:range
+ PASS  set 非法 r（days 8 位）→ device:range
+ PASS  del → ok；删空槽幂等 ok；del(9) → range
+ PASS  time → clock ok:true；校时后设备 utc 与手机对齐（偏差提案 P-01 口径）
+ PASS  time 非法参数（utc=0）→ device:range
+ PASS  log → rows 原样返回
+ PASS  bell（静音模式）→ device:audiooff（静音红线：绝不本地发声）
+ PASS  bell（audioOn=true）→ ok
+ PASS  forceErr(full) → 下一条 set 回执 device:full（P-04 测试钩子）
+ PASS  坏 JSON 行 → 设备回 err:badjson（走 evt 通道）
+ PASS  未知 cmd → err（P-02：契约未定义口径，模拟端回 badjson）
+ FAIL  busy：处理中收到第二条 cmd → err:busy（原始并发写，绕过本端排队） —— 期望 ["busy","hello"]，实际 ["busy","busy"]
+ PASS  超时重发 ×3 后放弃（LinkError timeout，写次数=3）
+ PASS  busy 回执也计入重试并最终成功
+ PASS  注入断连：pending 请求立刻被拒（disconnected）
+ PASS  注入断连后可重连，槽位数据保留
+ PASS  close 后请求 → disconnected（不发不猜）
+ PASS  forceFire → 主动推送 evt:fired {i, at}
+ PASS  自然触发：_tick 命中当前 hh:mm + 当日 → fired；同分钟防重复
+ PASS  seed 种子数据生效（hello.n / get 一致）
+simlink（SimulatedLink 契约回归）: 24/25 通过
+
+===== 总计 67 项，失败 3 项，套件失败 2 个 =====

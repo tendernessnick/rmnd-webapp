@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>自测 · 服药提醒配置端</title>
+  <style>
+    :root { --bg:#eef1f4; --card:#fff; --ink:#1c2430; --muted:#67727e; --border:#d6dce2; --ok:#17954c; --err:#cf3d3d; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#101418; --card:#1a2028; --ink:#e8ecf1; --muted:#97a1ad; --border:#2c3540; --ok:#43c377; --err:#ef6a6a; }
+    }
+    body { background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, "Microsoft YaHei", sans-serif; max-width: 640px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 18px; } h2 { font-size: 15px; margin: 18px 0 8px; }
+    .suite { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin: 10px 0; }
+    .case { padding: 3px 0; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+    .case.fail { color: var(--err); }
+    .case.pass::before { content: "✓ "; color: var(--ok); }
+    .case.fail::before { content: "✗ "; }
+    .sum { font-weight: 700; margin-top: 6px; }
+    .sum.bad { color: var(--err); }
+    .gallery { display: flex; flex-wrap: wrap; gap: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+    .gal-item { text-align: center; }
+    .gal-item .cap { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .badge-frame { display: inline-block; background: linear-gradient(180deg, #f7f4ea, #e9e4d6); border: 1px solid #c9c2ae; border-radius: 6px; padding: 6px 8px; }
+    .badge-frame canvas { display: block; image-rendering: pixelated; }
+    .gal4 canvas { image-rendering: pixelated; background: #f7f4ea; border: 1px solid #c9c2ae; border-radius: 4px; }
+    pre { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 11px; overflow: auto; }
+    .note { font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <h1>自测面板 —— 协议 / 链路 / 位图 / 回显</h1>
+  <p class="note">与 node 单测共用同一批套件源码（tests/*.test.mjs），外加浏览器专属的 canvas 渲染与回显检查。</p>
+  <div id="live" class="note" style="min-height:1.2em">启动中…</div>
+  <div id="suites"></div>
+  <h2>位图回显画廊（所见即工牌所得 · 上 1:1 下 4×）</h2>
+  <div class="gallery" id="gallery"></div>
+  <h2>说明</h2>
+  <pre id="notes"></pre>
+  <script type="module">
+    import { runSuite } from './tests/harness.mjs';
+    import { suite as protocolSuite } from './tests/protocol.test.mjs';
+    import { suite as bmpSuite } from './tests/bmp.test.mjs';
+    import { suite as simSuite } from './tests/simlink.test.mjs';
+    import { renderNameBitmap, drawBitmap, bitmapSizeOk } from './js/bmp.js';
+
+    const box = document.getElementById('suites');
+    const live = document.getElementById('live');
+    const logEl = (s) => { box.insertAdjacentHTML('beforeend', s); };
+    // 错误捕获：任何未捕获异常都打到 #live，避免静默卡住
+    window.addEventListener('error', (e) => { live.textContent = '⚠ error: ' + (e.message || e.type) + ' @' + (e.filename || '') + ':' + (e.lineno || ''); });
+    window.addEventListener('unhandledrejection', (e) => { live.textContent = '⚠ rejection: ' + ((e.reason && e.reason.message) || e.reason); });
+
+    async function runInDom(title, tests) {
+      let pass = 0, fail = 0;
+      const lines = [];
+      for (const t of tests) {
+        live.textContent = `运行中：${title} / ${t.name}`;
+        try { await t.fn(); pass++; lines.push(`<div class="case pass">${t.name}</div>`); }
+        catch (e) { fail++; lines.push(`<div class="case fail">${t.name} —— ${(e && e.message) || e}</div>`); }
+      }
+      logEl(`<div class="suite"><b>${title}</b>${lines.join('')}
+        <div class="sum ${fail ? 'bad' : ''}">${pass}/${tests.length} 通过${fail ? ' ← 有失败' : ''}</div></div>`);
+      return fail;
+    }
+
+    // ---------- 浏览器专属用例：canvas 渲染 + 回显 ----------
+    function domTests() {
+      const gal = document.getElementById('gallery');
+      const results = [];
+      const check = (name, fn) => results.push({ name, fn });
+      const addGallery = (label, render) => {
+        const { bmp, bmp2, truncated } = render;
+        const item = document.createElement('div');
+        item.className = 'gal-item';
+        const f1 = document.createElement('div'); f1.className = 'badge-frame';
+        const c1 = document.createElement('canvas'); drawBitmap(c1, bmp, { scale: 1 }); f1.append(c1);
+        const c4 = document.createElement('canvas'); drawBitmap(c4, bmp, { scale: 4 });
+        c4.className = 'gal4';
+        item.append(f1, document.createElement('br'), c4);
+        const cap = document.createElement('div'); cap.className = 'cap';
+        cap.textContent = `${label} · ${bmp ? bmp.w + '×16' : '无位图'}${bmp2 ? '+' + bmp2.w + '×16' : ''}${truncated ? ' · 截断' : ''}`;
+        item.append(cap);
+        gal.append(item);
+      };
+
+      check('「阿莫西林」单行 ~64px 无截断', () => {
+        const r = renderNameBitmap('阿莫西林');
+        if (!r.bmp || r.truncated) throw new Error(`truncated=${r.truncated}`);
+        if (r.bmp.w < 50 || r.bmp.w > 80) throw new Error('宽 ' + r.bmp.w);
+        if (!bitmapSizeOk(r.bmp)) throw new Error('b64 长度不符');
+        addGallery('阿莫西林', r);
+      });
+      check('「布洛芬缓释胶囊」实为 7 字 → 112px 满宽单行不截断', () => {
+        const r = renderNameBitmap('布洛芬缓释胶囊');
+        if (!r.bmp) throw new Error('无位图');
+        if (r.truncated) throw new Error('7 字 112px 应单行放下');
+        if (r.bmp.w > 112) throw new Error('超宽 ' + r.bmp.w);
+        addGallery('布洛芬缓释胶囊', r);
+      });
+      check('「阿莫西林克拉维酸钾」9 字 → 预算降级为单行截断', () => {
+        // 9×16=144px：双行超 480B 预算（偏差提案 P-03）→ 单行截断（6字+…）
+        const r = renderNameBitmap('阿莫西林克拉维酸钾');
+        if (!r.bmp) throw new Error('无位图');
+        if (!r.truncated) throw new Error('应截断（480B 预算）');
+        if (r.bmp.w > 112) throw new Error('超宽 ' + r.bmp.w);
+        addGallery('阿莫西林克拉维酸钾', r);
+      });
+      check('「维生素 D3」混排单行无截断', () => {
+        const r = renderNameBitmap('维生素 D3');
+        if (!r.bmp || r.truncated) throw new Error(`truncated=${r.truncated}`);
+        addGallery('维生素 D3', r);
+      });
+      check('「头孢克肟分散片」7字满宽 112px', () => {
+        const r = renderNameBitmap('头孢克肟分散片');
+        if (!r.bmp) throw new Error('无位图');
+        if (r.bmp.w > 112) throw new Error('超宽 ' + r.bmp.w);
+        addGallery('头孢克肟分散片', r);
+      });
+      check('空名 → bmp=null（工牌只显示时间）', () => {
+        const r = renderNameBitmap('');
+        if (r.bmp !== null) throw new Error('应为 null');
+        addGallery('（空名）', r);
+      });
+      check('emoji 剔除：「💊阿莫西林」位图=「阿莫西林」', () => {
+        const a = renderNameBitmap('阿莫西林');
+        const b = renderNameBitmap('💊阿莫西林');
+        if (b.bmp.w !== a.bmp.w) throw new Error(`宽 ${b.bmp.w} ≠ ${a.bmp.w}`);
+        addGallery('💊阿莫西林(剔除)', b);
+      });
+      check('全角容错：「ＡＢＣ胶囊」可渲染', () => {
+        const r = renderNameBitmap('ＡＢＣ胶囊');
+        if (!r.bmp) throw new Error('无位图');
+        addGallery('ＡＢＣ胶囊', r);
+      });
+      check('回显 4× 画布尺寸 = w×4', () => {
+        const r = renderNameBitmap('阿莫西林');
+        const c = document.createElement('canvas');
+        drawBitmap(c, r.bmp, { scale: 4 });
+        if (c.width !== r.bmp.w * 4 || c.height !== 64) throw new Error(`${c.width}×${c.height}`);
+      });
+      return results;
+    }
+
+    const total0 = performance.now();
+    // dom/canvas 套件排最前：浏览器专属价值（回显画廊），且同步为主 —— 在被节流的后台窗口也能跑完
+    let fails = await runInDom('dom（canvas 渲染 + 回显）', domTests());
+    fails += await runInDom(protocolSuite.title, protocolSuite.tests);
+    fails += await runInDom(bmpSuite.title, bmpSuite.tests);
+    fails += await runInDom(simSuite.title, simSuite.tests); // 定时器密集：窗口被遮挡时会因节流变慢，属正常
+    const secs = ((performance.now() - total0) / 1000).toFixed(1);
+
+    document.getElementById('notes').textContent =
+`480B 预算结论（偏差提案 P-03）：
+· 一条 112×16 位图 = 224B 原始 → 300 字符 b64；加 JSON 骨架(~144B)+name(14 全角=42B) ≈ 473B < 480 ✓
+· 两条 112×16 ≈ 756B；两条 64×16 + 8 全角名 ≈ 512B —— 均超 480 ✗
+· 故 renderNameBitmap 对 CJK 长名自动降级为单行截断（6字+…）；bmp+bmp2 打包路径存在且经
+  reminderFitsLine 合成用例实证可达（48px 档），仅对真实名字基本不触发，留待 v2 提行上限。
+
+Unverified（本页面无法覆盖）：真机 NFC 写入、真机 BLE（需 RMND- 广播）、PWA 安装。
+
+运行耗时 ${secs}s`;
+  </script>
+</body>
+</html>
